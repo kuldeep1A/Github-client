@@ -43,6 +43,10 @@ app.*.map.json
 /android/app/release
 
 
+# credentials
+lib/credentials
+
+
 # lib 
 lib
 
@@ -51,3 +55,6 @@ windows
 
 # test
 test
+
+# Local
+Local
