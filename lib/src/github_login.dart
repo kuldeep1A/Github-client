@@ -96,7 +96,8 @@ class _GithubLoginState extends State<GithubLoginWidget> {
     var params = request.uri.queryParameters;
     request.response.statusCode = 200;
     request.response.headers.set('content-type', 'text/plain');
-    request.response.writeln('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\t\t\t\t\t\t\t\t\t\t\t\tAuthenticated! You can close this tab.');
+    request.response.writeln(
+        '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\t\t\t\t\t\t\t\t\t\t\t\tAuthenticated! You can close this tab.');
     await request.response.close();
     await _redirectServer!.close();
     _redirectServer = null;
