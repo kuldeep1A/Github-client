@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'src/github_login.dart';
 import 'credentials/github_oauth_credentials.dart';
@@ -37,6 +35,7 @@ class MyHomePage extends StatelessWidget {
           return Scaffold(
             appBar: AppBar(
               title: Text(title),
+              backgroundColor: const Color.fromARGB(255, 231, 229, 234),
               elevation: 4,
             ),
             body: const Center(
