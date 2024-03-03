@@ -47,8 +47,7 @@ app.*.map.json
 lib/credentials
 
 
-# lib 
-lib
+# lib
 
 # windows
 windows
