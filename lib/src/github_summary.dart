@@ -34,7 +34,9 @@ class _GithubSummaryState extends State<GithubSummary> {
                 label: Text('Assigned Issues')),
             NavigationRailDestination(
                 icon: Icon(Octicons.git_pull_request),
-                label: Text('Pull Requests'))
+                label: Text('Pull Requests')),
+            NavigationRailDestination(
+                icon: Icon(Octicons.git_commit), label: Text('Commits'))
           ],
           elevation: 4,
         ),
@@ -59,16 +61,29 @@ class RepositoriesList extends StatefulWidget {
 }
 
 class _RepositoriesListState extends State<RepositoriesList> {
+  late Future<List<Repository>> _allRepositories;
+  late Future<List<Repository>> _filteredRepositories;
+
   @override
   initState() {
     super.initState();
-    _repositories = widget.gitHub.repositories.listRepositories().toList();
+    _allRepositories = widget.gitHub.repositories.listRepositories().toList();
+    _filteredRepositories = _allRepositories;
   }
-
-  late Future<List<Repository>> _repositories;
 
   TextEditingController controller = TextEditingController();
   String reposName = '';
+
+  Future<List<Repository>> _filterRepositories(String reponame) async {
+    var allRepositories = await _allRepositories;
+    if (reposName.isEmpty) {
+      return allRepositories;
+    } else {
+      return allRepositories
+          .where((repo) => repo.name.toLowerCase().contains(reponame))
+          .toList();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +98,7 @@ class _RepositoriesListState extends State<RepositoriesList> {
                 child: TextField(
                   controller: controller,
                   decoration: const InputDecoration(
-                    labelText: 'Enter repo name',
+                    labelText: 'Enter repository name',
                     border: OutlineInputBorder(),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
@@ -91,6 +106,8 @@ class _RepositoriesListState extends State<RepositoriesList> {
                   onChanged: (value) {
                     setState(() {
                       reposName = value;
+                      _filteredRepositories =
+                          _filterRepositories(reposName.toLowerCase());
                     });
                   },
                 ),
@@ -98,7 +115,8 @@ class _RepositoriesListState extends State<RepositoriesList> {
         ),
         const Divider(height: 1, thickness: 1),
         Expanded(
-          child: FutureBuilder<List<Repository>>(future: _repositories.then(
+          child: FutureBuilder<List<Repository>>(
+              future: _filteredRepositories.then(
             (repositories) {
               // Sort repositories by updatedAt in descending order.
               // Note: This assumes that updatedAt is not null for all items. If it can be null,
@@ -114,22 +132,27 @@ class _RepositoriesListState extends State<RepositoriesList> {
               return const Center(child: CircularProgressIndicator());
             }
             var repositories = snapshot.data;
-            return ListView.builder(
-              primary: false,
-              itemBuilder: (context, index) {
-                var repository = repositories[index];
+            if (repositories!.isEmpty) {
+              return const Center(
+                  child: Text('Your Search Repo does not exist!'));
+            } else {
+              return ListView.builder(
+                primary: false,
+                itemBuilder: (context, index) {
+                  var repository = repositories[index];
 
-                return ListTile(
-                  title: Text(
-                    '${repository.owner?.login ?? ''}/${repository.name} - ${repository.language}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  subtitle: Text(repository.description),
-                  onTap: () => _launchUrl(this, repository.htmlUrl),
-                );
-              },
-              itemCount: repositories!.length,
-            );
+                  return ListTile(
+                    title: Text(
+                      '${repository.owner?.login ?? ''}/${repository.name} - ${repository.language}',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    subtitle: Text(repository.description),
+                    onTap: () => _launchUrl(this, repository.htmlUrl),
+                  );
+                },
+                itemCount: repositories.length,
+              );
+            }
           }),
         )
       ],
@@ -230,7 +253,7 @@ class _PullRequestListState extends State<PullRequestList> {
                 child: TextField(
                   controller: controller,
                   decoration: const InputDecoration(
-                    labelText: 'Enter repo name',
+                    labelText: 'Enter repository name',
                     border: OutlineInputBorder(),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
