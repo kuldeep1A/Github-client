@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttericon/octicons_icons.dart';
 import 'package:github/github.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class GithubSummary extends StatefulWidget {
@@ -42,6 +41,7 @@ class _GithubSummaryState extends State<GithubSummary> {
         Expanded(
             child: IndexedStack(index: _selectedIndex, children: [
           RepositoriesList(gitHub: widget.gitHub),
+          AssignedIssuesList(gitHub: widget.gitHub),
         ]))
       ],
     );
@@ -98,6 +98,56 @@ class _RepositoriesListState extends State<RepositoriesList> {
         itemCount: repositories!.length,
       );
     });
+  }
+}
+
+class AssignedIssuesList extends StatefulWidget {
+  const AssignedIssuesList({required this.gitHub, super.key});
+  final GitHub gitHub;
+
+  @override
+  State<AssignedIssuesList> createState() => _AssignedIssuesListState();
+}
+
+class _AssignedIssuesListState extends State<AssignedIssuesList> {
+  @override
+  void initState() {
+    super.initState();
+    _assignedIssues = widget.gitHub.issues.listByUser().toList();
+  }
+
+  late Future<List<Issue>> _assignedIssues;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Issue>>(
+        future: _assignedIssues,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            throw Center(child: Text('erorosdfl: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          var assignedData = snapshot.data;
+          return ListView.builder(
+              itemBuilder: (context, index) {
+                var assignedIssue = assignedData[index];
+                return ListTile(
+                  title: Text(assignedIssue.title),
+                  subtitle: Text('${_nameWithOwer(assignedIssue)} '
+                      'Issue #${assignedIssue.number}'
+                      'opend by ${assignedIssue.user?.login ?? ''}'),
+                  onTap: () => _launchUrl(this, assignedIssue.htmlUrl),
+                );
+              },
+              itemCount: assignedData!.length);
+        });
+  }
+
+  String _nameWithOwer(Issue assignedIssue) {
+    final endIndex = assignedIssue.url.lastIndexOf('/issues/');
+    return assignedIssue.url.substring(29, endIndex);
   }
 }
 
