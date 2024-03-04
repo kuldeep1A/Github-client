@@ -320,7 +320,7 @@ packages:
   window_to_front:
     dependency: "direct main"
     description:
-      path: "../window_to_front"
+      path: window_to_front
       relative: true
     source: path
     version: "0.0.1"

@@ -40,7 +40,7 @@ dependencies:
   url_launcher: ^6.2.5
   github: ^9.24.0
   window_to_front:
-    path: ../window_to_front
+    path: window_to_front
 
 dev_dependencies:
   flutter_test:
