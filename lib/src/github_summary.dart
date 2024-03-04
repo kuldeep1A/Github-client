@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttericon/octicons_icons.dart';
 import 'package:github/github.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:intl/intl.dart';
 
 class GithubSummary extends StatefulWidget {
   final GitHub gitHub;
@@ -46,6 +47,7 @@ class _GithubSummaryState extends State<GithubSummary> {
           RepositoriesList(gitHub: widget.gitHub),
           AssignedIssuesList(gitHub: widget.gitHub),
           PullRequestList(gitHub: widget.gitHub, username: widget.username),
+          CommitsList(gitHub: widget.gitHub, username: widget.username)
         ]))
       ],
     );
@@ -295,11 +297,10 @@ class _PullRequestListState extends State<PullRequestList> {
                       var pullRequest = pullRequests[index];
                       return ListTile(
                         title: Text(pullRequest.title ?? ''),
-                        subtitle:
-                            Text('${widget.gitHub.auth.username}/$reposName'
-                                'PR #${pullRequest.number}'
-                                'opened by ${pullRequest.user?.login ?? ''}'
-                                '(${pullRequest.state?.toLowerCase() ?? ''} )'),
+                        subtitle: Text('${widget.username}/$reposName'
+                            'PR #${pullRequest.number}'
+                            'opened by ${pullRequest.user?.login ?? ''}'
+                            '(${pullRequest.state?.toLowerCase() ?? ''} )'),
                         onTap: () => _launchUrl(this, '${pullRequest.htmlUrl}'),
                       );
                     },
@@ -310,6 +311,126 @@ class _PullRequestListState extends State<PullRequestList> {
         ))
       ],
     );
+  }
+}
+
+class CommitsList extends StatefulWidget {
+  const CommitsList({required this.gitHub, required this.username, super.key});
+  final GitHub gitHub;
+  final String username;
+
+  @override
+  State<CommitsList> createState() => _CommitsListState();
+}
+
+class _CommitsListState extends State<CommitsList> {
+  @override
+  void initState() {
+    super.initState();
+    _commitsList = Future.value(<RepositoryCommit>[]);
+  }
+
+  late Future<List<RepositoryCommit>> _commitsList;
+
+  void _initializeCommitsList() {
+    if (reposName.isNotEmpty) {
+      _commitsList = widget.gitHub.repositories
+          .listCommits(RepositorySlug(widget.username, reposName))
+          .toList();
+    }
+  }
+
+  TextEditingController controller = TextEditingController();
+  String reposName = '';
+  int commitsCount = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          alignment: Alignment.topLeft,
+          child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 300.0,
+                    child: TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter repository name',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 16.0),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          reposName = value;
+                        });
+                        _initializeCommitsList();
+                      },
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 10.0,
+                  ),
+                  Text('${_commitsList.then((commit) => commit.length)}')
+                ],
+              )),
+        ),
+        const Divider(height: 1, thickness: 1),
+        Expanded(
+            child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: FutureBuilder<List<RepositoryCommit>>(
+              future: _commitsList,
+              builder: (context, snapshot) {
+                if (reposName == '') {
+                  return const Center(
+                      child: Text('Please Enter perfect repos name'));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('${snapshot.error}'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                var commitsListData = snapshot.data;
+                if (commitsListData!.isEmpty) {
+                  return const Text(
+                      'This repository does not have any commit!');
+                } else {
+                  return ListView.builder(
+                    primary: false,
+                    itemBuilder: (context, index) {
+                      var commit = commitsListData[index];
+                      var commitMessage =
+                          commit.commit?.message?.split('\n')[0] ??
+                              'No message';
+                      var committerName = commit.committer?.login ?? 'Unknown';
+                      var commitDate =
+                          commit.commit?.committer?.date ?? DateTime.now();
+                      var commitUrl = commit.htmlUrl ?? '';
+                      return ListTile(
+                        title: Text('@$commitMessage'),
+                        subtitle: Text(
+                            '$committerName committed ${_formattedDate(commitDate)}'),
+                        onTap: () => _launchUrl(this, commitUrl),
+                      );
+                    },
+                    itemCount: commitsListData.length,
+                  );
+                }
+              }),
+        ))
+      ],
+    );
+  }
+
+  String _formattedDate(DateTime dateTime) {
+    final formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    return formatter.format(dateTime);
   }
 }
 
