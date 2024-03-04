@@ -42,6 +42,7 @@ class _GithubSummaryState extends State<GithubSummary> {
             child: IndexedStack(index: _selectedIndex, children: [
           RepositoriesList(gitHub: widget.gitHub),
           AssignedIssuesList(gitHub: widget.gitHub),
+          PullRequestList(gitHub: widget.gitHub),
         ]))
       ],
     );
@@ -90,7 +91,9 @@ class _RepositoriesListState extends State<RepositoriesList> {
 
           return ListTile(
             title: Text(
-                '${repository.owner?.login ?? ''} /${repository.name} - ${repository.language}'),
+              '${repository.owner?.login ?? ''}/${repository.name} - ${repository.language}',
+              style: const TextStyle(fontSize: 18),
+            ),
             subtitle: Text(repository.description),
             onTap: () => _launchUrl(this, repository.htmlUrl),
           );
@@ -131,6 +134,7 @@ class _AssignedIssuesListState extends State<AssignedIssuesList> {
           }
           var assignedData = snapshot.data;
           return ListView.builder(
+              primary: false,
               itemBuilder: (context, index) {
                 var assignedIssue = assignedData[index];
                 return ListTile(
@@ -148,6 +152,55 @@ class _AssignedIssuesListState extends State<AssignedIssuesList> {
   String _nameWithOwer(Issue assignedIssue) {
     final endIndex = assignedIssue.url.lastIndexOf('/issues/');
     return assignedIssue.url.substring(29, endIndex);
+  }
+}
+
+class PullRequestList extends StatefulWidget {
+  const PullRequestList({required this.gitHub, super.key});
+  final GitHub gitHub;
+
+  @override
+  State<PullRequestList> createState() => _PullRequestListState();
+}
+
+class _PullRequestListState extends State<PullRequestList> {
+  @override
+  void initState() {
+    super.initState();
+    _pullRequests = widget.gitHub.pullRequests
+        .list(RepositorySlug('myUserName', 'myRepo'))
+        .toList();
+  }
+
+  late Future<List<PullRequest>> _pullRequests;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<PullRequest>>(
+        future: _pullRequests,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            throw Center(child: Text('${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          var pullRequests = snapshot.data;
+          return ListView.builder(
+            primary: false,
+            itemBuilder: (context, index) {
+              var pullRequest = pullRequests[index];
+              return ListTile(
+                title: Text(pullRequest.title ?? ''),
+                subtitle: Text('myUserName/myRepo'
+                    'PR #${pullRequest.number}'
+                    'opened by ${pullRequest.user?.login ?? ''}'
+                    '(${pullRequest.state?.toLowerCase() ?? ''} )'),
+              );
+            },
+            itemCount: pullRequests!.length,
+          );
+        });
   }
 }
 
