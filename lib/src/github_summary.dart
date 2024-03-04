@@ -5,8 +5,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 class GithubSummary extends StatefulWidget {
   final GitHub gitHub;
-  const GithubSummary({required this.gitHub, super.key});
-
+  final String username;
+  const GithubSummary(
+      {required this.gitHub, required this.username, super.key});
   @override
   State<GithubSummary> createState() => _GithubSummaryState();
 }
@@ -42,7 +43,7 @@ class _GithubSummaryState extends State<GithubSummary> {
             child: IndexedStack(index: _selectedIndex, children: [
           RepositoriesList(gitHub: widget.gitHub),
           AssignedIssuesList(gitHub: widget.gitHub),
-          PullRequestList(gitHub: widget.gitHub),
+          PullRequestList(gitHub: widget.gitHub, username: widget.username),
         ]))
       ],
     );
@@ -156,9 +157,10 @@ class _AssignedIssuesListState extends State<AssignedIssuesList> {
 }
 
 class PullRequestList extends StatefulWidget {
-  const PullRequestList({required this.gitHub, super.key});
+  const PullRequestList(
+      {required this.gitHub, required this.username, super.key});
   final GitHub gitHub;
-
+  final String username;
   @override
   State<PullRequestList> createState() => _PullRequestListState();
 }
@@ -167,40 +169,92 @@ class _PullRequestListState extends State<PullRequestList> {
   @override
   void initState() {
     super.initState();
-    _pullRequests = widget.gitHub.pullRequests
-        .list(RepositorySlug('myUserName', 'myRepo'))
-        .toList();
+    _pullRequests = Future.value(<PullRequest>[]);
   }
 
   late Future<List<PullRequest>> _pullRequests;
 
+  void _initializePullRequests() {
+    if (reposName.isNotEmpty) {
+      _pullRequests = widget.gitHub.pullRequests
+          .list(RepositorySlug(widget.username, reposName))
+          .toList();
+    }
+  }
+
+  TextEditingController controller = TextEditingController();
+  String reposName = '';
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<PullRequest>>(
-        future: _pullRequests,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            throw Center(child: Text('${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          var pullRequests = snapshot.data;
-          return ListView.builder(
-            primary: false,
-            itemBuilder: (context, index) {
-              var pullRequest = pullRequests[index];
-              return ListTile(
-                title: Text(pullRequest.title ?? ''),
-                subtitle: Text('myUserName/myRepo'
-                    'PR #${pullRequest.number}'
-                    'opened by ${pullRequest.user?.login ?? ''}'
-                    '(${pullRequest.state?.toLowerCase() ?? ''} )'),
-              );
-            },
-            itemCount: pullRequests!.length,
-          );
-        });
+    return Column(
+      children: [
+        Container(
+          alignment: Alignment.topLeft,
+          child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: SizedBox(
+                width: 300.0,
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter repo name',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      reposName = value;
+                    });
+                    _initializePullRequests();
+                  },
+                ),
+              )),
+        ),
+        const Divider(height: 1, thickness: 1),
+        Expanded(
+            child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: FutureBuilder<List<PullRequest>>(
+              future: _pullRequests,
+              builder: (context, snapshot) {
+                if (reposName == '') {
+                  return const Center(
+                      child: Text('Please Enter perfect repos name'));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('${snapshot.error}'));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                var pullRequests = snapshot.data;
+                if (pullRequests!.isEmpty) {
+                  return const Text(
+                      'This repository does not have any pull request!');
+                } else {
+                  return ListView.builder(
+                    primary: false,
+                    itemBuilder: (context, index) {
+                      var pullRequest = pullRequests[index];
+                      return ListTile(
+                        title: Text(pullRequest.title ?? ''),
+                        subtitle:
+                            Text('${widget.gitHub.auth.username}/$reposName'
+                                'PR #${pullRequest.number}'
+                                'opened by ${pullRequest.user?.login ?? ''}'
+                                '(${pullRequest.state?.toLowerCase() ?? ''} )'),
+                        onTap: () => _launchUrl(this, '${pullRequest.htmlUrl}'),
+                      );
+                    },
+                    itemCount: pullRequests.length,
+                  );
+                }
+              }),
+        ))
+      ],
+    );
   }
 }
 

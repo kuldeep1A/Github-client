@@ -34,12 +34,12 @@ class MyHomePage extends StatelessWidget {
       githubClientId: githubClientId,
       githubClientSecret: githubClientSecret,
       githubScopes: githubScopes,
-      builder: (context, httpClient) {
+      builder: (context, httpClient, username) {
         WindowToFront.activate();
         return Scaffold(
             appBar: AppBar(title: Center(child: Text(title)), elevation: 4),
             body: GithubSummary(
-                gitHub: _getGithub(httpClient.credentials.accessToken)));
+                gitHub: _getGithub(httpClient.credentials.accessToken), username: username));
       },
     );
   }
