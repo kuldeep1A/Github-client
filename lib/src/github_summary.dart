@@ -67,41 +67,73 @@ class _RepositoriesListState extends State<RepositoriesList> {
 
   late Future<List<Repository>> _repositories;
 
+  TextEditingController controller = TextEditingController();
+  String reposName = '';
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Repository>>(future: _repositories.then(
-      (repositories) {
-        // Sort repositories by updatedAt in descending order.
-        // Note: This assumes that updatedAt is not null for all items. If it can be null,
-        // you might want to handle that case explicitly to avoid runtime errors.
-        repositories.sort((a, b) => b.updatedAt!.compareTo(a.updatedAt!));
-        return repositories;
-      },
-    ), builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        throw Center(child: Text('${snapshot.error}'));
-      }
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      var repositories = snapshot.data;
-      return ListView.builder(
-        primary: false,
-        itemBuilder: (context, index) {
-          var repository = repositories[index];
+    return Column(
+      children: [
+        Container(
+          alignment: Alignment.topLeft,
+          child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: SizedBox(
+                width: 300.0,
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter repo name',
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      reposName = value;
+                    });
+                  },
+                ),
+              )),
+        ),
+        const Divider(height: 1, thickness: 1),
+        Expanded(
+          child: FutureBuilder<List<Repository>>(future: _repositories.then(
+            (repositories) {
+              // Sort repositories by updatedAt in descending order.
+              // Note: This assumes that updatedAt is not null for all items. If it can be null,
+              // you might want to handle that case explicitly to avoid runtime errors.
+              repositories.sort((a, b) => b.updatedAt!.compareTo(a.updatedAt!));
+              return repositories;
+            },
+          ), builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              throw Center(child: Text('${snapshot.error}'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            var repositories = snapshot.data;
+            return ListView.builder(
+              primary: false,
+              itemBuilder: (context, index) {
+                var repository = repositories[index];
 
-          return ListTile(
-            title: Text(
-              '${repository.owner?.login ?? ''}/${repository.name} - ${repository.language}',
-              style: const TextStyle(fontSize: 18),
-            ),
-            subtitle: Text(repository.description),
-            onTap: () => _launchUrl(this, repository.htmlUrl),
-          );
-        },
-        itemCount: repositories!.length,
-      );
-    });
+                return ListTile(
+                  title: Text(
+                    '${repository.owner?.login ?? ''}/${repository.name} - ${repository.language}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  subtitle: Text(repository.description),
+                  onTap: () => _launchUrl(this, repository.htmlUrl),
+                );
+              },
+              itemCount: repositories!.length,
+            );
+          }),
+        )
+      ],
+    );
   }
 }
 
