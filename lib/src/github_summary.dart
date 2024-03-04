@@ -342,8 +342,6 @@ class _CommitsListState extends State<CommitsList> {
 
   TextEditingController controller = TextEditingController();
   String reposName = '';
-  int commitsCount = 0;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -375,7 +373,19 @@ class _CommitsListState extends State<CommitsList> {
                   const SizedBox(
                     width: 10.0,
                   ),
-                  Text('${_commitsList.then((commit) => commit.length)}')
+                  FutureBuilder(
+                      future: _commitsList,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return const Text('Number of commits: 0');
+                        } else {
+                          return Text(
+                              'Number of commits: ${snapshot.data?.length ?? '0'} ');
+                        }
+                      })
                 ],
               )),
         ),
@@ -386,17 +396,17 @@ class _CommitsListState extends State<CommitsList> {
           child: FutureBuilder<List<RepositoryCommit>>(
               future: _commitsList,
               builder: (context, snapshot) {
+                var commitsListData = snapshot.data;
                 if (reposName == '') {
                   return const Center(
                       child: Text('Please Enter perfect repos name'));
                 }
                 if (snapshot.hasError) {
                   return Center(child: Text('${snapshot.error}'));
-                }
-                if (!snapshot.hasData) {
+                } else if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                var commitsListData = snapshot.data;
                 if (commitsListData!.isEmpty) {
                   return const Text(
                       'This repository does not have any commit!');
