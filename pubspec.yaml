@@ -39,6 +39,7 @@ dependencies:
   oauth2: ^2.0.2
   url_launcher: ^6.2.5
   github: ^9.24.0
+  # https://codelabs.developers.google.com/codelabs/flutter-github-client#5 for path or plugin
   window_to_front:
     path: window_to_front
   fluttericon: ^2.0.0
